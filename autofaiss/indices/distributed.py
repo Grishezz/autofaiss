@@ -311,6 +311,7 @@ def add_embeddings_to_index_distributed(
         embedding_reader.count, max(n_workers, math.ceil(embedding_reader.count / (10**7)), nb_indices_to_keep)
     )
     nb_indices_to_keep = min(nb_indices_to_keep, n_batches)
+    logger.info(f"Will be creating {nb_indices_to_keep} small indices")
     batches = _batch_loader(total_size=embedding_reader.count, nb_batches=n_batches)
     rdd = ss.sparkContext.parallelize(batches, n_batches)
     with Timeit("-> Adding indices", indent=2):
@@ -332,7 +333,7 @@ def add_embeddings_to_index_distributed(
     with Timeit("-> Merging indices", indent=2):
         stage2_folder = temporary_indices_folder.rstrip("/") + "/stage-2"
         next_stage_folder, _ = _merge_to_n_indices(
-            spark_session=ss, n=100, src_folder=stage1_folder, dst_folder=stage2_folder, index_optimizer=None
+            spark_session=ss, n=nb_indices_to_keep, src_folder=stage1_folder, dst_folder=stage2_folder, index_optimizer=None
         )
         if nb_indices_to_keep == 1:
             merged_index, _ = _merge_index(small_indices_folder=next_stage_folder, nb_batches=1)
